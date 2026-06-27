@@ -429,6 +429,7 @@ app.post('/api/game/:id/decide', requireAuth, async (req, res) => {
 
     db.updateRoundDecision(round.id, bought ? 1 : 0, assetAfter, roundReturn);
     db.updateSessionAsset(sessionId, assetAfter);
+    db.completeSession(sessionId);  // 1轮游戏，决策即结束
 
     res.json({
       bought: bought ? 1 : 0,
