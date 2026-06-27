@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我真不是股神啊 - 排行榜</title>
+  <link rel="stylesheet" href="/style.css?v=2">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">我真不是股神啊</a>
+      <div class="nav-links">
+        <% if (loggedIn) { %>
+          <a href="/game">游戏</a>
+          <span class="nav-asset" id="navAsset">资产: <span class="nav-asset-value">--</span>%</span>
+        <% } %>
+        <a href="/ranking">排行榜</a>
+        <% if (loggedIn) { %>
+          <a href="/api/logout" onclick="event.preventDefault(); fetch('/api/logout').then(()=>location='/')">退出</a>
+        <% } else { %>
+          <a href="/">首页</a>
+        <% } %>
+      </div>
+    </div>
+  </nav>
+
+  <div class="quote-bar">
+    <span class="quote-text">"<%= quote.text %>"</span>
+    <span class="quote-source">— <%= quote.source %></span>
+  </div>
+
+  <main class="main">
+    <h1>🏆 排行榜</h1>
+
+    <div class="ranking-tabs">
+      <button class="tab-btn active" onclick="switchRanking('uni')">大学排行</button>
+      <button class="tab-btn" onclick="switchRanking('ind')">个人排行</button>
+    </div>
+
+    <!-- 大学排行 -->
+    <div id="rankUni" class="ranking-table-wrap">
+      <% if (uniRanking.length === 0) { %>
+        <p class="empty-state">暂无数据，快去挑战吧！</p>
+      <% } else { %>
+      <table class="ranking-table">
+        <thead><tr><th>#</th><th>大学</th><th>省份</th><th>人数</th><th>平均资产</th><th>最佳资产</th></tr></thead>
+        <tbody>
+          <% uniRanking.forEach((r, i) => { %>
+          <tr class="<%= user && r.university_name === user.university_name ? 'highlight' : '' %>">
+            <td><%= i + 1 %><%= i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '' %></td>
+            <td><%= r.university_name %></td>
+            <td><%= r.province %></td>
+            <td><%= r.players %></td>
+            <td class="asset-col"><%= r.avg_asset %>%</td>
+            <td class="asset-col"><%= r.best_asset %>%</td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <% } %>
+    </div>
+
+    <!-- 个人排行 -->
+    <div id="rankInd" class="ranking-table-wrap" style="display:none">
+      <% if (indRanking.length === 0) { %>
+        <p class="empty-state">暂无数据，快去挑战吧！</p>
+      <% } else { %>
+      <table class="ranking-table">
+        <thead><tr><th>#</th><th>玩家</th><th>大学</th><th>最终资产</th><th>轮数</th><th>时间</th></tr></thead>
+        <tbody>
+          <% indRanking.forEach((r, i) => { %>
+          <tr>
+            <td><%= i + 1 %><%= i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '' %></td>
+            <td><%= r.username %></td>
+            <td><%= r.university_name %></td>
+            <td class="asset-col"><%= r.asset_pct %>%</td>
+            <td><%= r.rounds %>轮</td>
+            <td><%= r.completed_at ? r.completed_at.slice(0, 10) : '' %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <% } %>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>我真不是股神啊 — 中央财经大学会计学院学生作品，基于价值投资理念，训练无偏见的公司价值判断能力 · 数据来自东方财富公开接口</p>
+  </footer>
+
+  <script>
+    <% if (loggedIn) { %>
+    fetch('/api/asset').then(r => r.json()).then(d => {
+      const el = document.getElementById('navAsset');
+      if (el && d.asset !== undefined) el.innerHTML = '资产: <span class="nav-asset-value">' + d.asset.toFixed(1) + '</span>%';
+    }).catch(() => {});
+    <% } %>
+    function switchRanking(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('rankUni').style.display = tab === 'uni' ? '' : 'none';
+      document.getElementById('rankInd').style.display = tab === 'ind' ? '' : 'none';
+      document.querySelectorAll('.tab-btn')[tab === 'uni' ? 0 : 1].classList.add('active');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我真不是股神啊</title>
+  <link rel="stylesheet" href="/style.css?v=2">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">我真不是股神啊</a>
+      <div class="nav-links">
+        <% if (loggedIn) { %>
+          <a href="/game">开始游戏</a>
+          <a href="/ranking">排行榜</a>
+          <a href="/api/logout" onclick="event.preventDefault(); fetch('/api/logout').then(()=>location='/')">退出</a>
+          <span class="nav-asset" id="navAsset">资产: <span class="nav-asset-value">--</span>%</span>
+        <% } else { %>
+          <a href="#" onclick="showTab('login')">登录</a>
+          <a href="#" onclick="showTab('register')">注册</a>
+        <% } %>
+      </div>
+    </div>
+  </nav>
+
+  <div class="quote-bar">
+    <span class="quote-text">"<%= quote.text %>"</span>
+    <span class="quote-source">— <%= quote.source %></span>
+  </div>
+
+  <main class="main">
+    <% if (!loggedIn) { %>
+
+    <!-- 未登录：展示介绍 + 登录/注册 -->
+    <section class="hero">
+      <h1>你真了解一家公司吗？</h1>
+      <p class="hero-sub">在不透露公司名称的前提下，仅凭财务报表数据判断企业价值。</p>
+      <div class="hero-features">
+        <div class="feature">
+          <h3>匿名财报</h3>
+          <p>随机抽取A股上市公司，只看关键财务指标</p>
+        </div>
+        <div class="feature">
+          <h3>猜市值</h3>
+          <p>根据数据判断公司规模，挑战你的估值直觉</p>
+        </div>
+        <div class="feature">
+          <h3>模拟投资</h3>
+          <p>决定是否全仓买入，一年后验证你的判断</p>
+        </div>
+      </div>
+
+      <!-- 登录/注册切换 -->
+      <div class="auth-tabs">
+        <button class="tab-btn active" onclick="showTab('login')">登录</button>
+        <button class="tab-btn" onclick="showTab('register')">注册</button>
+      </div>
+
+      <div id="login-form" class="auth-form">
+        <form onsubmit="return doLogin(event)">
+          <input type="text" name="username" placeholder="用户名" required minlength="2">
+          <input type="password" name="password" placeholder="密码" required minlength="4">
+          <div class="error-msg"></div>
+          <button type="submit" class="btn-primary">登录</button>
+        </form>
+      </div>
+
+      <div id="register-form" class="auth-form" style="display:none">
+        <form onsubmit="return doRegister(event)">
+          <input type="text" name="username" placeholder="用户名" required minlength="2">
+          <input type="password" name="password" placeholder="密码" required minlength="4">
+          <select name="university_id" required>
+            <option value="">选择你的大学</option>
+          </select>
+          <div class="error-msg"></div>
+          <button type="submit" class="btn-primary">注册</button>
+        </form>
+      </div>
+    </section>
+
+    <% } else { %>
+
+    <!-- 已登录：欢迎 + 快速入口 -->
+    <section class="hero">
+      <h1>欢迎回来，<%= user.username %></h1>
+      <p class="hero-sub"><%= user.university_name %> · 训练无偏见的价值判断</p>
+      <div class="cta-buttons">
+        <a href="/game" class="btn-primary btn-large">开始新游戏</a>
+        <a href="/ranking" class="btn-secondary btn-large">排行榜</a>
+      </div>
+    </section>
+
+    <% } %>
+
+    <!-- 巴菲特经典语录 -->
+    <section class="quotes-section">
+      <h2>价值投资箴言</h2>
+      <div class="quotes-grid">
+        <% quotes.forEach(q => { %>
+          <blockquote class="quote-card">
+            <p>"<%= q.text %>"</p>
+            <cite>— <%= q.source %></cite>
+          </blockquote>
+        <% }) %>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>我真不是股神啊 — 中央财经大学会计学院学生作品，基于价值投资理念，训练无偏见的公司价值判断能力 · 数据来自东方财富公开接口</p>
+  </footer>
+
+  <script>
+    // 加载当前资产
+    <% if (loggedIn) { %>
+    fetch('/api/asset').then(r => r.json()).then(d => {
+      const el = document.getElementById('navAsset');
+      if (el && d.asset !== undefined) el.innerHTML = '资产: <span class="nav-asset-value">' + d.asset.toFixed(1) + '</span>%';
+    }).catch(() => {});
+    <% } %>
+
+    // 切换登录/注册
+    function showTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('login-form').style.display = tab === 'login' ? '' : 'none';
+      document.getElementById('register-form').style.display = tab === 'register' ? '' : 'none';
+      if (tab === 'login') document.querySelector('.tab-btn').classList.add('active');
+      else document.querySelectorAll('.tab-btn')[1].classList.add('active');
+    }
+
+    // 加载大学列表
+    <% if (!loggedIn) { %>
+    fetch('/api/universities').then(r => r.json()).then(unis => {
+      const sel = document.querySelector('select[name=university_id]');
+      unis.forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u.id;
+        opt.textContent = u.name;
+        sel.appendChild(opt);
+      });
+    });
+    <% } %>
+
+    // 登录
+    async function doLogin(e) {
+      e.preventDefault();
+      const f = e.target;
+      const err = f.querySelector('.error-msg');
+      try {
+        const r = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: f.username.value, password: f.password.value })
+        });
+        const d = await r.json();
+        if (d.error) { err.textContent = d.error; return false; }
+        location.reload();
+      } catch(e) { err.textContent = '网络错误'; }
+      return false;
+    }
+
+    // 注册
+    async function doRegister(e) {
+      e.preventDefault();
+      const f = e.target;
+      const err = f.querySelector('.error-msg');
+      try {
+        const r = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: f.username.value,
+            password: f.password.value,
+            university_id: parseInt(f.university_id.value)
+          })
+        });
+        const d = await r.json();
+        if (d.error) { err.textContent = d.error; return false; }
+        location.reload();
+      } catch(e) { err.textContent = '网络错误'; }
+      return false;
+    }
+  </script>
+</body>
+</html>

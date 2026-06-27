@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我真不是股神啊 - 游戏</title>
+  <link rel="stylesheet" href="/style.css?v=2">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">我真不是股神啊</a>
+      <div class="nav-links">
+        <a href="/game">游戏</a>
+        <a href="/ranking">排行榜</a>
+        <span class="nav-asset" id="navAsset">资产: <span class="nav-asset-value">--</span>%</span>
+        <a href="/api/logout" onclick="event.preventDefault(); fetch('/api/logout').then(()=>location='/')">退出</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="quote-bar" id="quoteBar">
+    <span class="quote-text">"<%= quote.text %>"</span>
+    <span class="quote-source">— <%= quote.source %></span>
+  </div>
+
+  <main class="main" id="gameMain">
+    <!-- 加载状态 -->
+    <div class="game-loading" id="gameLoading">
+      <div class="loading-spinner"></div>
+      <p>正在准备数据...</p>
+    </div>
+
+    <!-- 开始界面 -->
+    <div class="game-start" id="gameStart" style="display:none">
+      <h1>价值投资挑战</h1>
+      <p class="hero-sub">查看一家匿名A股公司的完整财报，<br>猜市值、做决策，验证你的投资判断力。</p>
+      <div class="rules">
+        <div class="rule">基于真实财务数据判断</div>
+        <div class="rule">猜对市值区间得验证</div>
+        <div class="rule">决定是否全仓买入持有1年</div>
+        <div class="rule">资产跨局累计，持续追踪投资能力</div>
+      </div>
+      <button class="btn-primary btn-large" onclick="startGame()">开始挑战</button>
+    </div>
+
+    <!-- 游戏进行中 -->
+    <div class="game-play" id="gamePlay" style="display:none">
+      <div class="game-header">
+        <div class="game-progress" id="gameProgress"></div>
+        <div class="game-asset" id="gameAsset">资产: <span class="asset-value">--</span>%</div>
+      </div>
+
+      <!-- 财务数据 -->
+      <div class="phase" id="phaseFinancials" style="display:none">
+        <div class="phase-title">
+          <p class="phase-hint" id="financialYearHint"></p>
+        </div>
+        <div class="industry-label" id="industryLabel"><span id="industryText"></span></div>
+        <div class="industry-label" id="mainBusinessBox" style="display:none;border-top:none;padding-top:0;color:var(--text);font-size:0.88rem">
+          主营业务：<span id="mainBusinessText"></span>
+        </div>
+        <div id="financialStatements"></div>
+        <div style="text-align:center;margin-top:24px">
+          <button class="btn-primary" id="btnNextToGuess" onclick="showGuessPhase()">查看市值选项</button>
+        </div>
+      </div>
+
+      <!-- 猜市值 -->
+      <div class="phase" id="phaseGuess" style="display:none">
+        <div class="phase-title"><h2>猜一猜市值</h2></div>
+        <p class="phase-hint">该公司年报公布后的总市值在哪个区间？</p>
+        <div class="range-buttons" id="rangeButtons"></div>
+      </div>
+
+      <!-- 揭晓公司 -->
+      <div class="phase" id="phaseReveal" style="display:none">
+        <div class="phase-title"><h2>答案揭晓</h2></div>
+        <div class="reveal-box">
+          <div class="reveal-company">
+            <span class="company-name" id="revealCompany">--</span>
+            <span class="company-code" id="revealCode">--</span>
+          </div>
+          <div class="reveal-detail">
+            <span class="reveal-label">行业</span>
+            <span id="revealIndustry">--</span>
+          </div>
+          <div class="reveal-detail">
+            <span class="reveal-label">年报后首日市值</span>
+            <span class="reveal-value" id="revealMarketCap">--</span>
+          </div>
+          <div class="reveal-detail">
+            <span class="reveal-label">当日股价</span>
+            <span id="revealPrice">--</span>
+          </div>
+          <div class="reveal-detail" id="revealProfileBox" style="display:none;flex-direction:column;gap:4px;border-bottom:none">
+            <span class="reveal-label">公司简介</span>
+            <span id="revealProfile" style="font-weight:400;font-size:0.85rem;line-height:1.6;text-align:left;color:var(--text)"></span>
+          </div>
+          <div class="reveal-verdict" id="revealVerdict"></div>
+        </div>
+        <div style="text-align:center;margin-top:24px">
+          <button class="btn-primary" id="btnNextToDecision" onclick="showDecisionPhase()">决定怎么投资</button>
+        </div>
+      </div>
+
+      <!-- 买入决策 -->
+      <div class="phase" id="phaseDecision" style="display:none">
+        <div class="phase-title"><h2>你的投资决策</h2></div>
+        <p class="phase-hint">了解这家公司后，你会怎么做？</p>
+        <div class="decision-buttons">
+          <button class="btn-buy" onclick="makeDecision(1)">
+            <span class="decision-title">全仓买入，持有1年</span>
+            <span class="decision-desc">看好这家公司，全部投入</span>
+          </button>
+          <button class="btn-pass" onclick="makeDecision(0)">
+            <span class="decision-title">不买</span>
+            <span class="decision-desc">不符合你的投资标准</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 结果 -->
+      <div class="phase" id="phaseResult" style="display:none">
+        <div class="phase-title"><h2>一年后</h2></div>
+        <div class="result-box" id="resultBox"></div>
+        <div class="asset-update" id="assetUpdate"></div>
+        <div style="text-align:center;margin-top:24px">
+          <button class="btn-primary" id="seeResultBtn" onclick="showPostGameActions()">查看结果</button>
+        </div>
+      </div>
+
+      <!-- 继续/退出 -->
+      <div class="phase" id="phasePostGame" style="display:none">
+        <div class="final-result" id="finalResult"></div>
+        <div class="post-game-actions">
+          <p id="postGameHint">资产已更新，选择下一步：</p>
+          <div class="cta-buttons">
+            <button class="btn-primary btn-large" onclick="continueGame()">继续挑战</button>
+            <a href="/" class="btn-secondary btn-large">返回首页</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>我真不是股神啊 — 中央财经大学会计学院学生作品，基于价值投资理念，训练无偏见的公司价值判断能力 · 数据来自东方财富公开接口</p>
+  </footer>
+
+  <script>
+    const RANGES = <%- JSON.stringify(ranges) %>;
+    let gameState = {
+      sessionId: null,
+      roundNumber: 0,
+      assetPct: 100,
+    };
+  </script>
+  <script src="/game.js"></script>
+</body>
+</html>

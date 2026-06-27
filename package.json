@@ -1,0 +1,19 @@
+{
+  "name": "buffett-value-game",
+  "version": "1.0.0",
+  "description": "巴菲特主题A股价值投资教育游戏",
+  "main": "app.js",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "start": "node app.js",
+    "fetch-stocks": "node fetch-stocks.js",
+    "setup": "node fetch-stocks.js"
+  },
+  "dependencies": {
+    "ejs": "^6.0.1",
+    "express": "^4.22.2",
+    "express-session": "^1.19.0"
+  }
+}
